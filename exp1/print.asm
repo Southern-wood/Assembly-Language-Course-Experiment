@@ -1,0 +1,87 @@
+; Author:  Southern-wood
+; Date:    2024-11-21
+CODE SEGMENT
+ASSUME CS:CODE
+
+PrintSpace PROC
+	PUSH AX
+	PUSH DX
+	MOV AH, 2
+	MOV DL, 20H
+	INT 21H
+	POP DX
+	POP AX
+	RET
+PrintSpace ENDP
+
+PrintCRLF PROC
+	PUSH AX
+	PUSH DX
+	MOV AH, 2
+	MOV DL, 0DH
+	INT 21H
+	MOV AH, 2
+	MOV DL, 0AH
+	INT 21H
+	POP DX
+	POP AX
+	RET
+PrintCRLF ENDP
+
+START:
+	MOV CL, 0
+AGAIN:
+	CMP CL, 10
+	JAE NotOneBit
+  CALL PrintSpace
+	CALL PrintSpace
+	MOV DL, CL
+	ADD DL, '0'
+	MOV AH, 2
+	INT 21H
+	CALL PrintSpace
+	INC CL
+  CMP DL, '9'
+	JNE skip
+  CALL PrintCRLF
+skip:
+	JMP AGAIN
+
+NotOneBit:
+	CMP CL, 100
+	JE Print100
+	MOV AL, CL
+	XOR AH, AH
+	; CL MOD 10
+	MOV CH, 10
+	DIV CH
+	MOV BX, AX
+	CALL PrintSpace
+	MOV AH, 2
+	MOV DL, BL
+	ADD DL, '0'
+	INT 21H
+	; Quotient
+	MOV DL, BH
+	; Reminder
+	ADD DL, '0'
+	INT 21H
+	CALL PrintSpace
+	CMP BH, 9
+	JNE Continue
+	CALL PrintCRLF
+Continue:
+	INC CL
+	JMP NotOneBit
+
+Print100:
+	MOV DL, '1'
+	MOV AH, 2
+	INT 21H
+	MOV DL, '0' 
+	INT 21H
+	MOV DL, '0'
+	INT 21H
+	CALL PrintCRLF
+CODE ENDS
+	END START
