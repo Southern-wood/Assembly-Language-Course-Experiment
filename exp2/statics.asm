@@ -5,13 +5,16 @@ DATA SEGMENT
   NOW_STR        DB "Current string: $"
   ALREADY_RESD   DB "The string has been updated to: $"
   PROMPT         DB "Please enter the menu item number: $"
-  INPUT          DB 50 DUP ('?')
+  INPUT          DB 100 DUP ('?')
   SPACE          DB "Space: $"
   LOWERCASE      DB "Lowercase: $"
   UPPERCASE      DB "Uppercase: $"
   NUMBER         DB "Number: $"
   OTHER          DB "Other: $"
-  MY_STR         DB "Hello, World$", 50 DUP (?)
+  MY_STR         DB "Hello, World$", 100 DUP (?)
+  DEBUG_INFO     DB "Debug info: $"
+  DIVID_LOOP_     DB "Divid loop: $"
+  MEET_END       DB "Meet end: $"
   space_count    DW 0
   lowercase_count DW 0
   uppercase_count DW 0
@@ -122,36 +125,35 @@ EXIT:
   JMP  EXIT_
 
 Print_statistics:
-  ; MOV   DX, OFFSET SPACE
-  ; CALL  PrintString
+  MOV   DX, OFFSET SPACE
+  CALL  PrintString
   MOV   AX, space_count
   CALL  Print_Number
   CALL  PrintNewLine
 
-  ; MOV   DX, OFFSET LOWERCASE
-  ; CALL  PrintString
-  ; ; MOV   AX, lowercase_count
-  ; ; CALL  Print_Number
-  ; CALL  PrintNewLine
+  MOV   DX, OFFSET LOWERCASE
+  CALL  PrintString
+  MOV   AX, lowercase_count
+  CALL  Print_Number
+  CALL  PrintNewLine
 
-  ; MOV   DX, OFFSET UPPERCASE
-  ; CALL  PrintString
-  ; ; MOV   AX, uppercase_count
-  ; ; CALL  Print_Number
-  ; CALL  PrintNewLine
+  MOV   DX, OFFSET UPPERCASE
+  CALL  PrintString
+  MOV   AX, uppercase_count
+  CALL  Print_Number
+  CALL  PrintNewLine
 
-  ; MOV   DX, OFFSET NUMBER
-  ; CALL  PrintString
-  ; ; MOV   AX, number_count
-  ; ; CALL  Print_Number
-  ; CALL  PrintNewLine
+  MOV   DX, OFFSET NUMBER
+  CALL  PrintString
+  MOV   AX, number_count
+  CALL  Print_Number
+  CALL  PrintNewLine
 
-  ; MOV   DX, OFFSET OTHER
-  ; CALL  PrintString
-  ; ; MOV   AX, other_count
-  ; ; CALL  Print_Number
-  ; CALL  PrintNewLine
-
+  MOV   DX, OFFSET OTHER
+  CALL  PrintString
+  MOV   AX, other_count
+  CALL  Print_Number
+  CALL  PrintNewLine
   JMP   REPEAT
 
 UPDATE_STRING_:      
@@ -198,8 +200,10 @@ EXIT_:
 ; 打印字符串子程序
 PrintString PROC
   PUSH   AX
+  PUSH   DX
   MOV    AH, 09H
   INT    21H
+  POP    DX
   POP    AX
   RET
 PrintString ENDP
@@ -229,10 +233,12 @@ ReadChar ENDP
 
 Print_Number PROC
 ; 打印 AX 中的数字
+    PUSH AX
     MOV CX, 0
+    MOV BX, 10
 
 divid_loop:
-    MOV BX, 10
+    XOR DX, DX
     DIV BX
     ; 余数入栈
     PUSH DX
@@ -247,19 +253,9 @@ Print_Digit:
     ADD DL, '0'
     MOV AH, 2
     INT 21H
-    DEC CX
-
-    MOV DX, CX
-    ADD DL, '0'
-    MOV AH, 2
-    INT 21H
-    CALL  PrintNewLine
-
-    ; 检查是否还有数字
-    CMP CX, 0
-    JE  Print_End
-    JMP Print_Digit
+    LOOP Print_Digit
 Print_End:    
+  POP AX
   RET
 Print_Number ENDP
  
