@@ -1,5 +1,5 @@
 DATA SEGMENT
-  MENU           DB "1. Set extra base for ASCII to number", 0AH
+  MENU           DB "1. Set extra base for ASCII to number (2 ~ 16 supported only)", 0AH
                  DB "2. Into convert loop, input a empty line to exit", 0AH
                  DB "3. Exit", 0AH, "$"
   PROMPT_1       DB "Please input the extra base: $"
@@ -7,12 +7,15 @@ DATA SEGMENT
   ERROR          DB "Can not convert to number, please input again: $"
   SET_BASE       DB "The extra base is set to: $"
   DECIMAL        DB "Decimal: $"
+  BINARY         DB "Binary: $"
+  BINARY_SUFFIX  DB "B$"
   HEX            DB "Hex: $"
+  HEX_SUFFIX     DB "H$"
   EXTR_BASE      DB "Extra Base $"
   ADDD           DB " : $"
   NOW_BASE       DW 0
   INPUT          DB 100 DUP ('?')
-  BASE           DW 0
+  BASE           DW 10
   TMP_NUM        DW 0
   ERROR_FLAG     DB 0
   NEGATIVE_FLAG  DB 0
@@ -27,19 +30,22 @@ CODE SEGMENT
   ASSUME CS:CODE, DS:DATA, SS:MY_STACK
 
 START:              
-  ; 设置数据段
+  ; ; 设置数据段
   MOV    AX, DATA
   MOV    DS, AX
 
+  ; 设置栈段
+  MOV    AX, MY_STACK
+  MOV    SS, AX
+
+repeat:
   ; 打印菜单
   MOV    DX, OFFSET MENU
   CALL   PrintString
-
-repeat:
   ; 读取字符
   MOV AH, 01H
   INT 21H
-  CALL   PrintNewLine
+  CALL  PrintNewLine
   CMP AL, '1'
   JE  SetExtraBase
   CMP AL, '2'
@@ -58,8 +64,10 @@ read:
   MOV    AX, TMP_NUM
   MOV    BASE, AX
   CALL   PrintNewLine
-  CMP    BASE, 0
+  CMP    BASE, 2
   JL     re_read
+  CMP    BASE, 16
+  JG     re_read
   MOV    DX, OFFSET SET_BASE
   CALL   PrintString
   MOV    AX, BASE
@@ -89,13 +97,47 @@ ConvertLoop:
   XOR AX, AX
   MOV AL, CHAR
   CALL Print_Number
+  CALL PrintNewLine
+
+  MOV DX, OFFSET BINARY
+  CALL PrintString
+  XOR AX, AX
+  MOV AL, CHAR
+  MOV BX, BASE
+  MOV TMP_NUM, BX
+  MOV BASE, 2
+  CALL Print_Number_Base
+  MOV DX, OFFSET BINARY_SUFFIX
+  CALL PrintString
+  CALL PrintNewLine
 
   MOV DX, OFFSET HEX
   CALL PrintString
   XOR AX, AX
   MOV AL, CHAR
-  MOV NOW_BASE, BX
+  MOV BASE, 16
   CALL Print_Number_Base
+  MOV DX, OFFSET HEX_SUFFIX
+  CALL PrintString
+  CALL PrintNewLine
+
+  MOV DX, OFFSET EXTR_BASE
+  CALL PrintString
+  MOV BX, TMP_NUM
+  MOV BASE, BX
+  MOV AX, BASE
+  CALL Print_Number
+  MOV DX, OFFSET ADDD
+  CALL PrintString
+  XOR AX, AX
+  MOV AL, CHAR
+  CALL Print_Number_Base
+  CALL PrintNewLine
+
+  JMP ConvertLoop
+
+  ; MOV NOW_BASE, BX
+  ; CALL Print_Number_Base
 
 
 
@@ -105,7 +147,18 @@ Print_Number PROC
     PUSH CX
 
     MOV CX, 0
-    MOV BX, 16
+    MOV BX, 10
+
+    CMP AX, 0
+    JGE divid_loop
+    MOV BX, AX
+    MOV DL, '-'
+    MOV AH, 2
+    INT 21H
+    MOV AX, BX
+    NEG AX
+    MOV BX, 10
+
 
 divid_loop:
     XOR DX, DX
@@ -120,14 +173,7 @@ divid_loop:
 Print_Digit:
     ; 从栈中取出数字并打印
     POP DX
-    CMP DL, 10
-    JL  Print_Digit_1
     ADD DL, '0'
-    MOV AH, 2
-    INT 21H
-    LOOP Print_Digit
-Print_Digit_1:
-    ADD DL, 'A' - 10
     MOV AH, 2
     INT 21H
     LOOP Print_Digit
@@ -177,6 +223,7 @@ DONE:
 
 ERROR_ECCURED:
   ; 打印错误信息
+  CALL PrintNewLine
   MOV DX, OFFSET ERROR
   CALL PrintString
   JMP BEGIN_READ
@@ -227,7 +274,7 @@ Print_Number_Base PROC
     PUSH CX
 
     MOV CX, 0
-    MOV BX, 10
+    MOV BX, BASE
 
     CMP AX, 0
     JGE divid_loop_Base
@@ -253,7 +300,13 @@ divid_loop_Base:
 Print_Digit_Base:
     ; 从栈中取出数字并打印
     POP DX
+    CMP DL, 9
+    JA HEX_CHAR
     ADD DL, '0'
+    JMP SKIP_HEX_CHAR
+HEX_CHAR:
+    ADD DL, 'A' - 10    
+SKIP_HEX_CHAR:
     MOV AH, 2
     INT 21H
     LOOP Print_Digit_Base
