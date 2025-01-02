@@ -1,5 +1,5 @@
 DATA SEGMENT
-  MENU           DB "1. Set extra base for ASCII to number (2 ~ 16 supported only)", 0AH
+  MENU           DB "1. Set extra base (2 ~ 16 supported only)", 0AH
                  DB "2. Into convert loop, input any negative number to exit", 0AH
                  DB "3. Exit", 0AH, "$"
   PROMPT_1       DB "Please input the extra base: $"
